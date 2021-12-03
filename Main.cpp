@@ -2,6 +2,7 @@
 #include <graphics.h> // easyx图形库，需要安装之后才能使用
 #include <conio.h> // 不是标准头文件，不是所有编译器都支持
 #include "resource.h"
+#include "config.h"
 
 /**
  * 游戏-2048(4x4)(play2048.co)
@@ -9,17 +10,7 @@
  * 界面(n=4)：n*n小格（格间隔 n+1 15），格子大小(100*100)
  * 数据：二维数组
  */
-#define CHAR_AVG_HEIGHT 50 // 字符的平均高度, 在settextstyle中会使用
-#define CHAR_AVG_WIDHT 0 // 字符的平均宽度(0自适应)
-#define CHAR_FONT "黑体" // 字体名称
-#define COLOR_BG RGB(187, 173, 160) // 背景颜色
-#define COLOR_SOID_DEFAULT RGB(205, 193, 180, 0) // 格子填充初始颜色
-#define GRID_SIZE 100 // 格子大小
-#define GRID_ROUND_SIZE 10 // 圆角大小
-#define GRID_ITEMS 4 // 每组格子数量
-#define GRID_INTERVAL 15 // 格子之间的间隔
-#define WIN_SIZE (GRID_SIZE * GRID_ITEMS + GRID_INTERVAL * (GRID_ITEMS + 1)) // 窗口大小
-#define NUM_WINNER 2048
+
 
 enum GridBGColor {
 	BG_WIN		 = RGB(187, 173, 160),	// 窗口背景颜色
@@ -86,7 +77,7 @@ bool checkerFail()
 void GameInit()
 {
 	srand((unsigned int)time(NULL) + clock()); // 播种: 设置随机数种子
-	initgraph(WIN_SIZE, WIN_SIZE, SHOWCONSOLE); // 初始化窗口
+	initgraph(WIN_SIZE, WIN_SIZE); // 初始化窗口
 
 	flagControl.is_playing = false;
 	flagControl.is_failed = false;
@@ -151,9 +142,12 @@ void directUp()
 				} else { // 非0且不等
 					if (dataMap[tmpRow + 1][row] == 0) {
 						dataMap[tmpRow + 1][row] = dataMap[col][row];
-						if ((tmpRow + 1) != col) dataMap[col][row] = 0;
-						tmpRow++;
+						if ((tmpRow + 1) != col) {
+							dataMap[col][row] = 0;
+							freqCountMerged++;
+						}
 					}
+					tmpRow++;
 				}
 			}
 		}
@@ -180,9 +174,12 @@ void directDown()
 				} else { // 非0且不等
 					if (dataMap[tmpRow - 1][row] == 0) {
 						dataMap[tmpRow - 1][row] = dataMap[col][row];
-						if ((tmpRow - 1) != col) dataMap[col][row] = 0;
-						tmpRow--;
+						if ((tmpRow - 1) != col) {
+							dataMap[col][row] = 0;
+							freqCountMerged++;
+						}
 					}
+					tmpRow--;
 				}
 			}
 		}
@@ -206,11 +203,14 @@ void directLeft()
 					tmpCol++; // 向右偏移
 					freqCountMerged++;
 				} else { // 非0且不等
-					if (dataMap[tmpCol + 1][row] == 0) {
-						dataMap[tmpCol + 1][row] = dataMap[row][col];
-						if ((tmpCol + 1) != col) dataMap[row][col] = 0;
-						tmpCol++;
+					if (dataMap[row][tmpCol + 1] == 0) {
+						dataMap[row][tmpCol + 1] = dataMap[row][col];
+						if ((tmpCol + 1) != col) {
+							dataMap[row][col] = 0;
+							freqCountMerged++;
+						}
 					}
+					tmpCol++;
 				}
 			}
 		}
@@ -221,7 +221,7 @@ void directRight()
 {
 	for (unsigned short row = GRID_ITEMS - 1; row >= 0 && row < GRID_ITEMS; row--)
 	{
-		unsigned short tmpCol = GRID_ITEMS - 1; // 默认第一列 [0-3, 0] 逐列检测
+		unsigned short tmpCol = GRID_ITEMS - 1;
 		for (unsigned short col = GRID_ITEMS - 2; col >= 0 && col < GRID_ITEMS; col--)
 		{
 			if (dataMap[row][col] != 0) {
@@ -235,11 +235,14 @@ void directRight()
 					tmpCol--; // 向左偏移
 					freqCountMerged++;
 				} else { // 非0且不等
-					if (dataMap[tmpCol - 1][row] == 0) {
-						dataMap[tmpCol - 1][row] = dataMap[row][col];
-						if ((tmpCol - 1) != col) dataMap[row][col] = 0;
-						tmpCol--;
+					if (dataMap[row][tmpCol - 1] == 0) {
+						dataMap[row][tmpCol - 1] = dataMap[row][col];
+						if ((tmpCol - 1) != col) {
+							dataMap[row][col] = 0;
+							freqCountMerged++;
+						}
 					}
+					tmpCol--;
 				}
 			}
 		}
@@ -256,27 +259,24 @@ void KeyListener()
 		case 'W':
 		case 72:
 			directUp();
-			if (!freqCountMerged) dataMapFill(1);
 			break;
 		case 's': // down
 		case 'S':
 		case 80:
 			directDown();
-			if (!freqCountMerged) dataMapFill(1);
 			break;
 		case 'a': // left
 		case 'A':
 		case 75:
 			directLeft();
-			if (!freqCountMerged) dataMapFill(1);
 			break;
 		case 'd': // right
 		case 'D':
 		case 77:
 			directRight();
-			if (!freqCountMerged) dataMapFill(1);
 			break;
 	}
+	if (freqCountMerged) dataMapFill(1);
 }
 
 void GameUpdate()
